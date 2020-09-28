@@ -5,7 +5,8 @@
 // 1 cm = 10 mm =>> 10/8 * 400 = 4000/8 = 500 steps are needed to move the nut by 1 cm.
  
 #include <AccelStepper.h>
- 
+#define NOP __asm__ __volatile__ ("nop\n\t")
+
 //User-defined values
 long receivedSteps = 0; //Number of steps
 long receivedSpeed = 800; //Steps / second
@@ -124,12 +125,13 @@ void checkSerial() //function for receiving the commands
     {
         receivedCommand = Serial.read(); // pass the value to the receivedCommad variable
         newData = true; //indicate that there is a new data by setting this bool to true
- 
-        if (newData == true) //we only enter this long switch-case statement if there is a new command from the computer
+    }
+    if (newData == true) //we only enter this long switch-case statement if there is a new command from the computer
+    {
+        switch (receivedCommand) //we check what is the command
         {
-            switch (receivedCommand) //we check what is the command
-            {
-            case 'U':
+        case 'U':
+            if(doSanityCheckUp()){
                 relative = false;
                 directionMultiplier = 1; //We define the direction
                 Serial.println("Bed Going Up."); //print the action
@@ -142,9 +144,11 @@ void checkSerial() //function for receiving the commands
                 RotateRelative(); //Run the function
                 //example: P2000 400 - 2000 steps (5 revolution with 400 step/rev microstepping) and 400 steps/s speed
                 //In theory, this movement should take 5 seconds
-                break;
+            }
+            break;
 
-            case 'D':
+        case 'D':
+            if(doSanityCheckDown()){
                 relative = false;
                 directionMultiplier = -1; //We define the direction
                 Serial.println("Bed Going Down."); //print the action
@@ -157,90 +161,90 @@ void checkSerial() //function for receiving the commands
                 RotateRelative(); //Run the function
                 //example: P2000 400 - 2000 steps (5 revolution with 400 step/rev microstepping) and 400 steps/s speed
                 //In theory, this movement should take 5 seconds
-                break;
-
-            case 'P': //P uses the move() function of the AccelStepper library, which means that it moves relatively to the current position.              
-                relative = true;
-                receivedSteps = Serial.parseFloat(); //value for the steps
-                receivedSpeed = Serial.parseFloat(); //value for the speed
-                directionMultiplier = 1; //We define the direction
-                Serial.println("Positive direction."); //print the action
-                RotateRelative(); //Run the function
- 
-                //example: P2000 400 - 2000 steps (5 revolution with 400 step/rev microstepping) and 400 steps/s speed
-                //In theory, this movement should take 5 seconds
-                break;         
- 
-            case 'N': //N uses the move() function of the AccelStepper library, which means that it moves relatively to the current position.      
-                relative = true;
-                receivedSteps = Serial.parseFloat(); //value for the steps
-                receivedSpeed = Serial.parseFloat(); //value for the speed 
-                directionMultiplier = -1; //We define the direction
-                Serial.println("Negative direction."); //print action
-                RotateRelative(); //Run the function
- 
-                //example: N2000 400 - 2000 steps (5 revolution with 400 step/rev microstepping) and 500 steps/s speed; will rotate in the other direction
-                //In theory, this movement should take 5 seconds
-                break;
- 
-            case 'S': // Stops the motor
-               
-                stepper.stop(); //stop motor
-                stepper.disableOutputs(); //disable power
-                Serial.println("Stopped."); //print action
-                runallowed = false; //disable running
-                digitalWrite(ACTUATOR_PIN, HIGH);
-                break;
-
-            case 'p': // Pauses the motor
-               
-                Serial.println("Paused."); //print action
-                runallowed = false; //disable running
-                digitalWrite(ACTUATOR_PIN, HIGH);
-                break;
-
-            case 'r': // Runs the paused program
-               
-                Serial.println("Unpaused."); //print action
-                runallowed = true; //disable running
-                digitalWrite(ACTUATOR_PIN, LOW);
-                break;
- 
-            case 'A': // Updates acceleration
- 
-                runallowed = false; //we still keep running disabled, since we just update a variable
-                stepper.disableOutputs(); //disable power
-                receivedAcceleration = Serial.parseFloat(); //receive the acceleration from serial
-                stepper.setAcceleration(receivedAcceleration); //update the value of the variable
-                Serial.print("New acceleration value: "); //confirm update by message
-                Serial.println(receivedAcceleration); //confirm update by message
-                break;
-
-            case 'u': // Updates position
-                stepper.setCurrentPosition(Serial.parseFloat());
-                Serial.println(stepper.currentPosition());
-                break;
-
-            case 'g': // Gets position
-                Serial.println(stepper.currentPosition());
-                break;
-
-            case 'd': //disable actuator
-                disableActuators = true;
-                break;
-
-            case 'e': //enable actuator
-                disableActuators = false;
-                break;
-
-            default:  
-
-                break;
             }
+            break;
+
+        case 'P': //P uses the move() function of the AccelStepper library, which means that it moves relatively to the current position.              
+            relative = true;
+            receivedSteps = Serial.parseFloat(); //value for the steps
+            receivedSpeed = Serial.parseFloat(); //value for the speed
+            directionMultiplier = 1; //We define the direction
+            Serial.println("Positive direction."); //print the action
+            RotateRelative(); //Run the function
+
+            //example: P2000 400 - 2000 steps (5 revolution with 400 step/rev microstepping) and 400 steps/s speed
+            //In theory, this movement should take 5 seconds
+            break;         
+
+        case 'N': //N uses the move() function of the AccelStepper library, which means that it moves relatively to the current position.      
+            relative = true;
+            receivedSteps = Serial.parseFloat(); //value for the steps
+            receivedSpeed = Serial.parseFloat(); //value for the speed 
+            directionMultiplier = -1; //We define the direction
+            Serial.println("Negative direction."); //print action
+            RotateRelative(); //Run the function
+
+            //example: N2000 400 - 2000 steps (5 revolution with 400 step/rev microstepping) and 500 steps/s speed; will rotate in the other direction
+            //In theory, this movement should take 5 seconds
+            break;
+
+        case 'S': // Stops the motor
+            
+            stepper.stop(); //stop motor
+            stepper.disableOutputs(); //disable power
+            Serial.println("Stopped."); //print action
+            runallowed = false; //disable running
+            digitalWrite(ACTUATOR_PIN, HIGH);
+            break;
+
+        case 'p': // Pauses the motor
+            
+            Serial.println("Paused."); //print action
+            runallowed = false; //disable running
+            digitalWrite(ACTUATOR_PIN, HIGH);
+            break;
+
+        case 'r': // Runs the paused program
+            
+            Serial.println("Unpaused."); //print action
+            runallowed = true; //disable running
+            digitalWrite(ACTUATOR_PIN, LOW);
+            break;
+
+        case 'A': // Updates acceleration
+
+            runallowed = false; //we still keep running disabled, since we just update a variable
+            stepper.disableOutputs(); //disable power
+            receivedAcceleration = Serial.parseFloat(); //receive the acceleration from serial
+            stepper.setAcceleration(receivedAcceleration); //update the value of the variable
+            Serial.print("New acceleration value: "); //confirm update by message
+            Serial.println(receivedAcceleration); //confirm update by message
+            break;
+
+        case 'u': // Updates position
+            stepper.setCurrentPosition(Serial.parseFloat());
+            Serial.println(stepper.currentPosition());
+            break;
+
+        case 'g': // Gets position
+            Serial.println(stepper.currentPosition());
+            break;
+
+        case 'd': //disable actuator
+            disableActuators = true;
+            break;
+
+        case 'e': //enable actuator
+            disableActuators = false;
+            break;
+
+        default:  
+
+            break;
         }
-        //after we went through the above tasks, newData is set to false again, so we are ready to receive new commands again.
-        newData = false;       
     }
+    //after we went through the above tasks, newData is set to false again, so we are ready to receive new commands again.
+    newData = false;       
 }
  
 void RotateRelative()
@@ -283,4 +287,38 @@ void PrintCommands()
     Serial.println(" 'd' : Disables linear actuators.");
     Serial.println(" 'p' : Pauses the up or down program in it's current position and stops everything immediately.");
     Serial.println(" 'r' : Resumes the up or down program in it's current position immediately.");
+}
+
+//TODO: convert the following two functions to use read method that doesn't require String (https://forum.arduino.cc/index.php?topic=396450)
+bool doSanityCheckDown(){
+    if(Serial.available() > 0){Serial.readString();} //clear the buffer
+    Serial.println("DID YOU MAKE SURE ALL RODS WERE REMOVED AND CLEAR OF WHEELS? [y/n]");
+    while(Serial.available() <= 0){ // loop until serial becomes available 
+        NOP; // no-op delay 62.5ns on a 16MHz AtMega
+    } 
+    String answer = Serial.readString();
+    if(answer == "y" || answer == "Y" || answer = "yes"){
+        Serial.println("AND DID YOU MAKE SURE THE VENT WAS CLOSED? [y/n]"); //or open??
+        while(Serial.available() <= 0){ // loop until serial becomes available 
+            NOP; // no-op delay 62.5ns on a 16MHz AtMega
+        } 
+        answer = Serial.readString();
+        if(answer == "y" || answer == "Y" || answer = "yes"){
+            return true;
+        }
+    }
+    return false; //if we haven't returned yet, we failed one of the checks.
+}
+
+bool doSanityCheckUp(){
+    if(Serial.available() > 0){Serial.readString();} //clear the buffer
+    Serial.println("DID YOU MAKE SURE THE VENT WAS CLOSED? [y/n]"); //or open??
+    while(Serial.available() <= 0){ // loop until serial becomes available 
+        NOP; // no-op delay 62.5ns on a 16MHz AtMega
+    } 
+    String answer = Serial.readString();
+    if(answer == "y" || answer == "Y" || answer = "yes"){
+        return true;
+    }
+    return false;
 }
