@@ -57,7 +57,7 @@ void loop()
     checkSerial(); //check serial port for new commands
     RunTheMotor(); //function to handle the motor  
 }
- 
+
 void RunTheMotor() //function for the motor
 {
     if (runallowed == true)
@@ -159,7 +159,6 @@ void checkSerial() //function for receiving the commands
                 //In theory, this movement should take 5 seconds
                 break;
 
-
             case 'P': //P uses the move() function of the AccelStepper library, which means that it moves relatively to the current position.              
                 relative = true;
                 receivedSteps = Serial.parseFloat(); //value for the steps
@@ -216,26 +215,24 @@ void checkSerial() //function for receiving the commands
                 Serial.print("New acceleration value: "); //confirm update by message
                 Serial.println(receivedAcceleration); //confirm update by message
                 break;
- 
+
             case 'u': // Updates position
                 stepper.setCurrentPosition(Serial.parseFloat());
                 Serial.println(stepper.currentPosition());
-
                 break;
 
             case 'g': // Gets position
                 Serial.println(stepper.currentPosition());
-
                 break;
 
             case 'd': //disable actuator
                 disableActuators = true;
-                
                 break;
+
             case 'e': //enable actuator
                 disableActuators = false;
-
                 break;
+
             default:  
 
                 break;
